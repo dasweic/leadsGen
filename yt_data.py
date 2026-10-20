@@ -1,5 +1,5 @@
 import os
-
+import time
 import re
 
 import statistics
@@ -946,7 +946,77 @@ def find_youtube_editing_leads(
 
 import pandas as pd
 
-def mail():
-    df = pd.read_excel("output/youtube_leads.xlsx")
-    mail_addresses = df["Email"].dropna().tolist()
-    print(mail_addresses)
+df = pd.read_excel("output/youtube_leads.xlsx")
+mail_addresses = df["Email"].dropna().tolist()
+
+
+
+
+import os
+import ssl
+import smtplib
+from email.message import EmailMessage
+from dotenv import load_dotenv
+
+load_dotenv()
+def send_mail(mail_address, subject, body):
+    sender_email = os.getenv("EMAIL_ADDRESS")
+    app_password = os.getenv("EMAIL_APP_PASSWORD")
+
+    # Validate configuration
+    if not sender_email or not app_password:
+        print("Error: EMAIL_ADDRESS or EMAIL_APP_PASSWORD missing in .env")
+        return False
+
+    if not mail_address or not subject:
+        print("Error: Recipient email and subject are required.")
+        return False
+
+    # Create email message
+    message = EmailMessage()
+    message["From"] = sender_email
+    message["To"] = mail_address
+    message["Subject"] = subject
+    message.set_content(body)
+
+    context = ssl.create_default_context()
+
+    try:
+        # Gmail secure SMTP connection (port 465)
+        with smtplib.SMTP_SSL(
+            "smtp.gmail.com",
+            465,
+            context=context,
+            timeout=30
+        ) as server:
+            server.set_debuglevel(2)
+            server.login(sender_email, app_password)
+            server.send_message(message)
+
+        print(f"Email sent successfully to {mail_address}")
+        time.sleep(10)  # Delay to avoid sending too many emails in a short time
+        return True
+
+    except smtplib.SMTPAuthenticationError:
+        print("Authentication failed. Check your Gmail App Password.")
+        return False
+
+    except smtplib.SMTPRecipientsRefused:
+        print("Email rejected: recipient address was refused.")
+        return False
+
+    except (smtplib.SMTPException, OSError) as error:
+        print(f"Email sending failed: {error}")
+        return False
+
+subject = "type your subject here"
+body = "type your body here"
+
+
+
+def send_emails_to_list(mail_addresses, subject, body):
+    for i in range(0, len(mail_addresses)):
+        send_mail(mail_addresses[i], subject, body)
+
+
+
